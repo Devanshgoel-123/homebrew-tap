@@ -1,7 +1,9 @@
 # Homebrew tap for DiskPilot
 
 ```sh
-brew install --cask devanshgoel-123/tap/diskpilot
+brew tap devanshgoel-123/tap
+brew trust devanshgoel-123/tap
+brew install --cask diskpilot
 ```
 
 Update with `brew upgrade --cask diskpilot`.
