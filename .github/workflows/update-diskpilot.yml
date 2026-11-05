@@ -1,0 +1,73 @@
+name: Update DiskPilot
+
+# Checks every hour for a new DiskPilot release and points the cask at it.
+# The DMG is only accepted if it matches the published SHA-256 and carries
+# a build provenance attestation from DiskPilot's own release workflow.
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-diskpilot
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE: Devanshgoel-123/diskpilot
+      CASK: Casks/diskpilot.rb
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Find the latest release
+        id: latest
+        run: |
+          tag=$(gh release view -R "$SOURCE" --json tagName --jq .tagName)
+          version=${tag#v}
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Unexpected release tag: $tag"
+            exit 1
+          fi
+          current=$(sed -n 's/^  version "\(.*\)"$/\1/p' "$CASK")
+          echo "Cask: $current. Latest release: $version."
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ "$version" != "$current" ]; then
+            echo "changed=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download and verify the DMG
+        if: steps.latest.outputs.changed
+        id: dmg
+        env:
+          VERSION: ${{ steps.latest.outputs.version }}
+        run: |
+          # The release may still be uploading; the next run will retry.
+          gh release download "v$VERSION" -R "$SOURCE" -D "$RUNNER_TEMP" \
+            -p DiskPilot.dmg -p DiskPilot.dmg.sha256
+          cd "$RUNNER_TEMP"
+          sha256sum -c DiskPilot.dmg.sha256
+          gh attestation verify DiskPilot.dmg -R "$SOURCE" \
+            --signer-workflow "$SOURCE/.github/workflows/release.yml"
+          echo "sha256=$(cut -d' ' -f1 DiskPilot.dmg.sha256)" >> "$GITHUB_OUTPUT"
+
+      - name: Update the cask and push
+        if: steps.latest.outputs.changed
+        env:
+          VERSION: ${{ steps.latest.outputs.version }}
+          SHA256: ${{ steps.dmg.outputs.sha256 }}
+        run: |
+          sed -i \
+            -e "s/^  version \".*\"$/  version \"$VERSION\"/" \
+            -e "s/^  sha256 \".*\"$/  sha256 \"$SHA256\"/" \
+            "$CASK"
+          git diff
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "diskpilot $VERSION"
+          git push
