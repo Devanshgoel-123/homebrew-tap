@@ -4,7 +4,7 @@ cask "diskpilot" do
 
   url "https://github.com/Devanshgoel-123/diskpilot/releases/download/v#{version}/DiskPilot.dmg"
   name "DiskPilot"
-  desc "Explains what is filling your Mac's disk and what is safe to clear"
+  desc "Explains what is filling your disk and what is safe to clear"
   homepage "https://diskpilot.live/"
 
   livecheck do
@@ -12,7 +12,7 @@ cask "diskpilot" do
     strategy :github_latest
   end
 
-  depends_on macos: ">= :big_sur"
+  depends_on macos: :big_sur
 
   app "DiskPilot.app"
 
