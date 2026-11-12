@@ -1,6 +1,6 @@
 cask "diskpilot" do
-  version "0.6.4"
-  sha256 "d53d49f0abb9a833c025684e73b7560c18f3f45c0b1cecfdeb7f7ae4e540a87a"
+  version "0.6.5"
+  sha256 "a8b7e85c44ca2d392322e50cfa7165bf6933a6d7b83367c76f368677893245d3"
 
   url "https://github.com/Devanshgoel-123/diskpilot/releases/download/v#{version}/DiskPilot.dmg"
   name "DiskPilot"
